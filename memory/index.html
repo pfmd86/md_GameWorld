@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Match! 🧠</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  :root {
+    --bg-sky-top: #FF6B9D; --bg-sky-mid: #FFB3CC; --bg-split: 58%;
+    --theme-primary: #FF6B9D; --theme-secondary: #c0365e;
+    --rose: #FF6B9D; --rose2: #c0365e;
+  }
+
+  header { padding: 6px 20px 2px; }
+  header h1 { font-size: clamp(1.3rem,5vw,2rem); text-shadow: 3px 3px 0 #c0365e, 6px 6px 0 rgba(0,0,0,.12); }
+  .subtitle { font-size: .78rem; }
+  .score-area { gap: 10px; padding: 3px 20px; font-size: .85rem; }
+  .score-pill { padding: 3px 12px; }
+  .toggles-area { padding: 2px 12px; }
+  .mode-btn { padding: 3px 10px; font-size: .7rem; }
+  .settings-btn { padding: 3px 12px; font-size: .74rem; }
+  .game-container { max-width: 540px; padding: 4px 12px 6px; }
+
+  /* ── Stats bar ── */
+  .stats-bar { display: flex; justify-content: center; gap: 16px; padding: 3px 0 4px; flex-shrink: 0; }
+  .stat-chip {
+    background: rgba(255,255,255,.28); border-radius: 16px; padding: 3px 12px;
+    color: white; font-weight: 800; font-size: .78rem;
+    backdrop-filter: blur(4px); text-shadow: 1px 1px 2px rgba(0,0,0,.15);
+  }
+
+  /* ── Card grid ── */
+  .board { flex: 1 1 0; display: grid; gap: clamp(6px,2vw,10px); min-height: 0; padding: 4px 0; }
+  .board.grid-4 { grid-template-columns: repeat(4,1fr); }
+  .board.grid-5 { grid-template-columns: repeat(4,1fr); }
+  .board.grid-6 { grid-template-columns: repeat(6,1fr); }
+
+  /* ── Card ── */
+  .card {
+    position: relative; cursor: pointer; border-radius: 14px;
+    -webkit-tap-highlight-color: transparent;
+    transform-style: preserve-3d;
+    transition: transform .35s cubic-bezier(.4,0,.2,1); min-height: 0;
+  }
+  .card.flipped  { transform: rotateY(180deg); }
+  .card.matched  { transform: rotateY(180deg); cursor: default; }
+  .card.matched .card-front {
+    background: linear-gradient(135deg,#d4f5dc,#b8edca)!important;
+    border-color: #5DBB63!important; animation: matchPop .4s ease;
+  }
+  @keyframes matchPop { 0%{transform:scale(1)} 40%{transform:scale(1.18)} 100%{transform:scale(1)} }
+  .card.wrong-flash .card-front { animation: wrongFlash .45s ease; }
+  @keyframes wrongFlash { 0%,100%{background:inherit} 30%,70%{background:#ffe0e0!important;border-color:#FF6B6B!important} }
+
+  .card-back, .card-front {
+    position: absolute; inset: 0; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border: 3px solid transparent;
+  }
+  .card-back {
+    background: linear-gradient(145deg,#FF6B9D,#c0365e);
+    border-color: rgba(255,255,255,.3);
+    font-size: clamp(1.2rem,4vw,1.8rem); color: rgba(255,255,255,.5);
+  }
+  .card-back::after { content: '★'; font-size: clamp(1.4rem,5vw,2.2rem); color: rgba(255,255,255,.35); }
+  .card-front { transform: rotateY(180deg); background: white; border-color: #f0e0f0; font-size: clamp(1.6rem,6vw,2.8rem); }
+  .card:hover:not(.flipped):not(.matched) .card-back {
+    background: linear-gradient(145deg,#ff85b3,#d94070); transform: scale(1.04);
+  }
+
+  /* ── Overlay card (picker & end screen shell) ── */
+  .overlay-card {
+    background: white; border-radius: 24px; padding: 20px 20px 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12); text-align: center;
+    flex: 1 1 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; min-height: 0;
+    position: relative; overflow: hidden;
+  }
+  .overlay-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+    background: linear-gradient(90deg,var(--rose),var(--orange),var(--sun),var(--correct),var(--blue),var(--purple));
+  }
+
+  /* ── Picker ── */
+  .picker-title { font-family: 'Baloo 2', sans-serif; font-size: 1.3rem; color: #333; margin-bottom: 14px; }
+  .grid-cards { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .grid-card {
+    background: #fafafa; border: 3px solid #e5e5e5; border-radius: 18px;
+    padding: 14px 12px 10px; width: 100px; cursor: pointer; transition: all .2s; text-align: center;
+  }
+  .grid-card:hover { border-color: #FF6B9D; transform: translateY(-3px); }
+  .grid-card.sel { background: #fff0f6; border-color: #FF6B9D; }
+  .grid-card-icon { font-size: 2rem; margin-bottom: 4px; }
+  .grid-card-label { font-family: 'Baloo 2', sans-serif; font-size: .9rem; font-weight: 800; color: #333; }
+  .grid-card-sub { font-size: .68rem; color: #aaa; font-weight: 600; }
+
+  .start-btn {
+    padding: 12px 44px; background: linear-gradient(135deg,var(--rose),var(--rose2));
+    border: none; border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1.2rem; font-weight: 700;
+    color: white; cursor: pointer; box-shadow: 0 4px 16px rgba(192,54,94,.35); transition: all .2s;
+  }
+  .start-btn:hover { transform: scale(1.04); }
+  .start-btn:disabled { opacity: .45; cursor: default; transform: none; }
+
+  /* ── End screen ── */
+  .end-emoji { font-size: 4.5rem; margin-bottom: 6px; }
+  .end-title { font-family: 'Baloo 2', sans-serif; font-size: 2rem; color: var(--rose2); text-shadow: 3px 3px 0 rgba(0,0,0,.08); margin-bottom: 8px; }
+  .end-stats { font-size: 1rem; font-weight: 800; color: #555; margin-bottom: 18px; line-height: 1.7; }
+  .play-again-btn {
+    padding: 12px 40px; background: linear-gradient(135deg,var(--rose),var(--rose2));
+    border: none; border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1.3rem; color: white;
+    cursor: pointer; box-shadow: 0 6px 20px rgba(192,54,94,.4); transition: all .2s; margin-bottom: 10px;
+  }
+  .play-again-btn:hover { transform: scale(1.05); }
+  .change-btn {
+    padding: 7px 24px; background: rgba(255,107,157,.1);
+    border: 2px solid var(--rose); border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: .9rem; font-weight: 700;
+    color: var(--rose2); cursor: pointer; transition: all .2s;
+  }
+  .change-btn:hover { background: rgba(255,107,157,.2); }
+
+  /* ── Countdown overlay ── */
+  .countdown {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.35); backdrop-filter: blur(2px);
+  }
+  .countdown-num {
+    font-family: 'Baloo 2', sans-serif; font-size: clamp(5rem,20vw,9rem);
+    font-weight: 800; color: white;
+    text-shadow: 0 0 40px rgba(255,107,157,.8), 4px 4px 0 var(--rose2);
+    animation: cdPop .8s ease both;
+  }
+  @keyframes cdPop { 0%{transform:scale(2);opacity:0} 60%{transform:scale(.9)} 100%{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+
+<div class="bg-scene"></div>
+<div class="sun"></div>
+<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+
+<header>
+  <h1>🧠 Memory Match!</h1>
+  <div class="subtitle" id="headerSub">Find all the matching pairs! 🃏</div>
+</header>
+
+<div class="score-area" id="scoreArea">
+  <div class="score-pill">⭐ Best: <span id="bestMoves">—</span></div>
+  <div class="score-pill">⏱ Best time: <span id="bestTime">—</span></div>
+</div>
+
+<div class="toggles-area" id="togglesArea">
+  <button class="settings-btn" onclick="goHome()">🏠 Menu</button>
+  <button class="settings-btn" onclick="openSettings()">⚙️ Settings</button>
+  <button class="mode-btn" id="btnTheme" onclick="cycleTheme()">🐾 Animals</button>
+</div>
+
+<div class="game-container" id="gameContainer">
+
+  <!-- ══ PICKER ══ -->
+  <div class="overlay-card" id="pickerScreen">
+    <div class="picker-title">🧠 Choose grid size!</div>
+    <div class="grid-cards">
+      <div class="grid-card" id="gc8" onclick="selectGrid(8)">
+        <div class="grid-card-icon">🐣</div>
+        <div class="grid-card-label">Easy</div>
+        <div class="grid-card-sub">8 cards · 4 pairs</div>
+      </div>
+      <div class="grid-card" id="gc12" onclick="selectGrid(12)">
+        <div class="grid-card-icon">🌟</div>
+        <div class="grid-card-label">Medium</div>
+        <div class="grid-card-sub">12 cards · 6 pairs</div>
+      </div>
+      <div class="grid-card" id="gc16" onclick="selectGrid(16)">
+        <div class="grid-card-icon">🚀</div>
+        <div class="grid-card-label">Hard</div>
+        <div class="grid-card-sub">16 cards · 8 pairs</div>
+      </div>
+      <div class="grid-card" id="gc20" onclick="selectGrid(20)">
+        <div class="grid-card-icon">🏆</div>
+        <div class="grid-card-label">Expert</div>
+        <div class="grid-card-sub">20 cards · 10 pairs</div>
+      </div>
+    </div>
+    <button class="start-btn" id="startBtn" onclick="startGame()" disabled>Pick a size! 👆</button>
+  </div>
+
+  <!-- ══ GAME BOARD ══ -->
+  <div id="gameArea" style="display:none;flex-direction:column;flex:1 1 0;min-height:0">
+    <div class="stats-bar">
+      <div class="stat-chip">🔄 Moves: <span id="moveCount">0</span></div>
+      <div class="stat-chip">⏱ <span id="timer">0:00</span></div>
+      <div class="stat-chip">✅ <span id="pairsFound">0</span> / <span id="pairsTotal">0</span></div>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <!-- ══ END SCREEN ══ -->
+  <div class="overlay-card" id="endScreen" style="display:none">
+    <div class="end-emoji" id="endEmoji">🎉</div>
+    <div class="end-title">Well done!</div>
+    <div class="end-stats" id="endStats"></div>
+    <button class="play-again-btn" onclick="startGame()">Play Again! 🔄</button>
+    <button class="change-btn" onclick="showPicker()">Change Size 🔀</button>
+  </div>
+
+</div>
+
+<!-- Settings overlay -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box">
+    <h2>⚙️ Settings</h2>
+    <div class="s-section">
+      <div class="s-label">Emoji Theme</div>
+      <div class="s-row" id="sTheme">
+        <button class="s-opt active" onclick="setTheme('animals')">🐾 Animals</button>
+        <button class="s-opt" onclick="setTheme('food')">🍕 Food</button>
+        <button class="s-opt" onclick="setTheme('nature')">🌸 Nature</button>
+        <button class="s-opt" onclick="setTheme('space')">🚀 Space</button>
+        <button class="s-opt" onclick="setTheme('sports')">⚽ Sports</button>
+      </div>
+    </div>
+    <div class="s-section">
+      <div class="s-label">Peek time (cards shown at start)</div>
+      <div class="s-row" id="sPeek">
+        <button class="s-opt" onclick="setPeek(0)">None</button>
+        <button class="s-opt active" onclick="setPeek(1500)">1.5s</button>
+        <button class="s-opt" onclick="setPeek(3000)">3s</button>
+      </div>
+    </div>
+    <button class="s-close" onclick="closeSettings()">Done ✓</button>
+  </div>
+</div>
+
+<script>
+// ── Emoji pools ──
+const THEMES = {
+  animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦉'],
+  food:    ['🍎','🍌','🍕','🍔','🍦','🍪','🎂','🍓','🍊','🍋','🍇','🍑','🍒','🥕','🌽','🥦','🍩','🧁','🍫','🥝'],
+  nature:  ['🌸','🌻','🌈','⭐','🌙','☀️','🌊','🔥','❄️','🌿','🍃','🍁','🌺','🌴','🌵','🍄','🌷','🪸','🦋','🐝'],
+  space:   ['🚀','🛸','🌍','🌕','⭐','☄️','🪐','🌌','👨‍🚀','🛰️','🌟','💫','🪨','🔭','🌠','🌙','☀️','🌑','🌏','🪝'],
+  sports:  ['⚽','🏀','🎾','🏈','⚾','🏐','🏉','🎱','🏓','🏸','🥊','🛹','🎿','⛷️','🏋️','🤸','🧗','🤾','🏊','🚴'],
+};
+
+// ── Config ──
+let gridSize  = 0;    // total cards (8/12/16/20)
+let theme     = 'animals';
+let peekMs    = 1500; // show all cards briefly at start
+
+// ── State ──
+let cards     = [];   // [{id, emoji, matched, flipped}]
+let flipped   = [];   // indices of currently face-up unmatched cards
+let moves     = 0;
+let pairsFoundCount = 0;
+let pairsNeeded = 0;
+let locked    = false;
+let timerInterval = null;
+let elapsedSec = 0;
+let gameActive = false;
+
+// ── Persist best ──
+function bestKey(){ return `mem_${theme}_${gridSize}`; }
+function loadBest(){ try{ return JSON.parse(localStorage.getItem('memBests')||'{}')[bestKey()]||null; }catch(e){return null;} }
+function saveBest(moves, secs){
+  try{
+    const b=JSON.parse(localStorage.getItem('memBests')||'{}');
+    const k=bestKey();
+    if(!b[k]||moves<b[k].moves||(moves===b[k].moves&&secs<b[k].secs)){
+      b[k]={moves,secs}; localStorage.setItem('memBests',JSON.stringify(b));
+    }
+  }catch(e){}
+}
+function fmtTime(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+// ── Sound ──
+let audioCtx=null;
+function getCtx(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function playFlip(){
+  try{
+    const ctx=getCtx(), o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.setValueAtTime(600,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900,ctx.currentTime+.08);
+    g.gain.setValueAtTime(.15,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);
+    o.start(); o.stop(ctx.currentTime+.14);
+  }catch(e){}
+}
+function playMatch(){
+  try{
+    const ctx=getCtx();
+    [[523,0],[784,.1],[1047,.2]].forEach(([f,w])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);o.type='sine';
+      o.frequency.setValueAtTime(f,ctx.currentTime+w);
+      g.gain.setValueAtTime(.28,ctx.currentTime+w);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+w+.25);
+      o.start(ctx.currentTime+w);o.stop(ctx.currentTime+w+.28);
+    });
+  }catch(e){}
+}
+function playNoMatch(){
+  try{
+    const ctx=getCtx();
+    [[300,0],[220,.18]].forEach(([f,w])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);o.type='sawtooth';
+      o.frequency.setValueAtTime(f,ctx.currentTime+w);
+      g.gain.setValueAtTime(.18,ctx.currentTime+w);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+w+.22);
+      o.start(ctx.currentTime+w);o.stop(ctx.currentTime+w+.25);
+    });
+  }catch(e){}
+}
+function spawnConfetti(count=30){
+  const cl=['#FF6B6B','#FFD700','#4ECDC4','#A78BFA','#FF8DC7','#5DBB63','#FF9F43'];
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');el.className='confetti-piece';
+      el.style.cssText=`left:${Math.random()*100}%;background:${cl[Math.floor(Math.random()*cl.length)]};animation-duration:${1+Math.random()*2}s;animation-delay:${Math.random()*.5}s;transform:rotate(${Math.random()*360}deg);border-radius:${Math.random()>.5?'50%':'2px'}`;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),3500);
+    },i*40);
+  }
+}
+
+// ── Picker ──
+function selectGrid(n){
+  gridSize=n;
+  document.querySelectorAll('.grid-card').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('gc'+n).classList.add('sel');
+  document.getElementById('startBtn').disabled=false;
+  document.getElementById('startBtn').textContent='Let\'s Go! 🚀';
+  refreshBestDisplay();
+}
+function setTheme(t){
+  theme=t;
+  document.querySelectorAll('#sTheme .s-opt').forEach(b=>{
+    const names={'animals':'Animals','food':'Food','nature':'Nature','space':'Space','sports':'Sports'};
+    b.classList.toggle('active', b.textContent.includes(names[t]));
+  });
+  const icons={'animals':'🐾','food':'🍕','nature':'🌸','space':'🚀','sports':'⚽'};
+  document.getElementById('btnTheme').textContent=icons[t]+' '+t.charAt(0).toUpperCase()+t.slice(1);
+  refreshBestDisplay();
+}
+function cycleTheme(){
+  const order=['animals','food','nature','space','sports'];
+  const idx=(order.indexOf(theme)+1)%order.length;
+  setTheme(order[idx]);
+}
+function setPeek(ms){
+  peekMs=ms;
+  document.querySelectorAll('#sPeek .s-opt').forEach(b=>{
+    b.classList.toggle('active', b.textContent.includes(ms===0?'None':ms===1500?'1.5':'3'));
+  });
+}
+function refreshBestDisplay(){
+  const b=loadBest();
+  document.getElementById('bestMoves').textContent = b ? b.moves+' moves' : '—';
+  document.getElementById('bestTime').textContent  = b ? fmtTime(b.secs) : '—';
+}
+
+// ── Timer ──
+function startTimer(){
+  elapsedSec=0; clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    elapsedSec++;
+    document.getElementById('timer').textContent=fmtTime(elapsedSec);
+  },1000);
+}
+function stopTimer(){ clearInterval(timerInterval); }
+
+// ── Build board ──
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+
+function buildBoard(){
+  const pool = shuffle([...THEMES[theme]]).slice(0, gridSize/2);
+  const pairs = shuffle([...pool, ...pool]);
+  cards = pairs.map((emoji,i)=>({id:i, emoji, matched:false, flipped:false}));
+  pairsNeeded = gridSize/2;
+  pairsFoundCount = 0;
+  moves = 0;
+  flipped = [];
+  locked = false;
+
+  document.getElementById('moveCount').textContent = 0;
+  document.getElementById('timer').textContent = '0:00';
+  document.getElementById('pairsFound').textContent = 0;
+  document.getElementById('pairsTotal').textContent = pairsNeeded;
+
+  // Grid columns
+  const board = document.getElementById('board');
+  board.className = 'board ' + (gridSize<=16 ? 'grid-4' : 'grid-5');
+  board.innerHTML = '';
+
+  cards.forEach((card,i)=>{
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.id = 'card'+i;
+    el.innerHTML = `<div class="card-back"></div><div class="card-front">${card.emoji}</div>`;
+    el.addEventListener('click', ()=>flipCard(i));
+    board.appendChild(el);
+  });
+}
+
+// ── Peek (briefly show all cards) ──
+function doPeek(){
+  if(peekMs===0){ startTimer(); gameActive=true; return; }
+  locked=true;
+  // Show all
+  cards.forEach((_,i)=>document.getElementById('card'+i).classList.add('flipped'));
+
+  // Countdown overlay
+  let remaining = Math.ceil(peekMs/1000);
+  const overlay = document.createElement('div');
+  overlay.className='countdown';
+  overlay.innerHTML=`<div class="countdown-num" id="cdNum">${remaining}</div>`;
+  document.body.appendChild(overlay);
+
+  const tick = setInterval(()=>{
+    remaining--;
+    const numEl=document.getElementById('cdNum');
+    if(numEl) { numEl.style.animation='none'; numEl.textContent=remaining>0?remaining:'Go!'; setTimeout(()=>numEl.style.animation='',10); }
+    if(remaining<=0){
+      clearInterval(tick);
+      setTimeout(()=>{
+        overlay.remove();
+        cards.forEach((_,i)=>document.getElementById('card'+i).classList.remove('flipped'));
+        locked=false; gameActive=true; startTimer();
+      },500);
+    }
+  },1000);
+}
+
+// ── Flip logic ──
+function flipCard(i){
+  if(locked || !gameActive) return;
+  if(cards[i].matched || cards[i].flipped) return;
+  if(flipped.length>=2) return;
+
+  playFlip();
+  cards[i].flipped=true;
+  document.getElementById('card'+i).classList.add('flipped');
+  flipped.push(i);
+
+  if(flipped.length===2){ checkMatch(); }
+}
+
+function checkMatch(){
+  locked=true;
+  moves++;
+  document.getElementById('moveCount').textContent=moves;
+
+  const [a,b]=flipped;
+  if(cards[a].emoji===cards[b].emoji){
+    // Match!
+    setTimeout(()=>{
+      cards[a].matched=cards[b].matched=true;
+      document.getElementById('card'+a).classList.add('matched');
+      document.getElementById('card'+b).classList.add('matched');
+      pairsFoundCount++;
+      document.getElementById('pairsFound').textContent=pairsFoundCount;
+      flipped=[];
+      locked=false;
+      playMatch();
+      spawnConfetti(8);
+      if(pairsFoundCount===pairsNeeded) endGame();
+    },300);
+  } else {
+    // No match
+    setTimeout(()=>{
+      const ca=document.getElementById('card'+a), cb=document.getElementById('card'+b);
+      ca.classList.add('wrong-flash'); cb.classList.add('wrong-flash');
+      playNoMatch();
+      setTimeout(()=>{
+        ca.classList.remove('flipped','wrong-flash');
+        cb.classList.remove('flipped','wrong-flash');
+        cards[a].flipped=cards[b].flipped=false;
+        flipped=[];
+        locked=false;
+      },500);
+    },400);
+  }
+}
+
+// ── End ──
+function endGame(){
+  stopTimer(); gameActive=false;
+  saveBest(moves, elapsedSec);
+  refreshBestDisplay();
+  spawnConfetti(50);
+
+  setTimeout(()=>{
+    document.getElementById('gameArea').style.display='none';
+    const end=document.getElementById('endScreen');
+    end.style.display='flex';
+
+    const perfect = moves === pairsNeeded;
+    document.getElementById('endEmoji').textContent = perfect?'🏆':moves<=pairsNeeded*1.5?'🌟':'🎉';
+    const rating = perfect?'Perfect! No wasted moves! 🏆':moves<=pairsNeeded*1.5?'Excellent memory! 🌟':moves<=pairsNeeded*2?'Great job! 🎉':'Well done! 💪';
+    document.getElementById('endStats').innerHTML=
+      `Pairs: <strong>${pairsNeeded}</strong> &nbsp;|&nbsp; Moves: <strong>${moves}</strong> &nbsp;|&nbsp; Time: <strong>${fmtTime(elapsedSec)}</strong><br><br>${rating}`;
+  },600);
+}
+
+// ── Screen control ──
+function showPicker(){
+  document.getElementById('pickerScreen').style.display='flex';
+  document.getElementById('gameArea').style.display='none';
+  document.getElementById('endScreen').style.display='none';
+  stopTimer(); gameActive=false;
+  refreshBestDisplay();
+}
+
+function startGame(){
+  if(!gridSize) return;
+  closeSettings();
+  document.getElementById('pickerScreen').style.display='none';
+  document.getElementById('endScreen').style.display='none';
+  document.getElementById('gameArea').style.display='flex';
+  stopTimer();
+  buildBoard();
+  doPeek();
+}
+
+function goHome(){ window.location.href='/'; }
+function openSettings(){ document.getElementById('settingsOverlay').classList.add('show'); }
+function closeSettings(){ document.getElementById('settingsOverlay').classList.remove('show'); }
+
+// ── Boot ──
+showPicker();
+</script>
+
+<footer><a href="https://games.mathiasdenzin.com">🎮 games.mathiasdenzin.com</a></footer>
+</body>
+</html>

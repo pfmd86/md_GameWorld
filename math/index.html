@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Adventure! 🔢</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  :root {
+    --bg-sky-top: #6C63FF; --bg-sky-mid: #9B8FFF; --bg-split: 55%;
+    --theme-primary: #6C63FF; --theme-secondary: #5b21b6;
+  }
+
+  /* Math uses a planet instead of a sun */
+  .sun { display: none; }
+  .planet {
+    position: fixed; top: 18px; right: 50px; width: 72px; height: 72px;
+    background: radial-gradient(circle at 35% 35%, #FFD700, #FF8C00);
+    border-radius: 50%;
+    box-shadow: 0 0 0 12px rgba(255,215,0,.25), 0 0 0 24px rgba(255,215,0,.1);
+    animation: pulse 3s ease-in-out infinite; z-index: -1;
+  }
+
+  /* Slightly smaller cloud sizes for math */
+  .c1{width:110px;height:36px;top:55px}.c1::before{width:55px;height:55px;top:-22px;left:12px}.c1::after{width:40px;height:40px;top:-14px;left:45px}
+  .c2{width:80px;height:28px;top:95px}.c2::before{width:40px;height:40px;top:-18px;left:8px}.c2::after{width:32px;height:32px;top:-10px;left:33px}
+  .c3{width:140px;height:44px;top:38px}.c3::before{width:65px;height:65px;top:-28px;left:18px}.c3::after{width:50px;height:50px;top:-18px;left:60px}
+
+  /* popIn for dots starts from scale(0), no opacity fade */
+  @keyframes popIn{0%{transform:scale(0)}80%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+  .game-container{max-width:560px;padding:5px 16px 10px}
+  .question-card{padding:14px 18px 12px}
+  .progress-bar-wrap{margin:0 0 8px}
+  .answers{gap:7px;margin-top:8px}
+  .answer-btn{padding:11px 16px;font-size:1.25rem;letter-spacing:.5px}
+  .feedback{font-size:1.1rem;padding:7px;margin-top:6px}
+  .next-btn{margin:8px auto 0;padding:10px 32px;font-size:1.15rem}
+  .star{font-size:22px}
+  .settings-box h2{font-size:1.4rem}
+  .end-score{font-size:1.3rem;margin-bottom:20px}
+  .play-again-btn{padding:14px 44px;font-size:1.4rem;background:linear-gradient(135deg,#FF6B6B,#FF8DC7);box-shadow:0 6px 20px rgba(255,107,107,.4);margin-bottom:12px}
+
+  /* ── Math equation display ── */
+  .equation-area{flex-shrink:0;padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .equation-emoji{font-size:clamp(1.8rem,6vh,2.8rem);line-height:1;margin-bottom:2px;animation:bounceIn .4s ease}
+  @keyframes bounceIn{0%{transform:translateY(-16px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  .equation-box{display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0}
+  .eq-num{font-family:'Baloo 2',sans-serif;font-size:clamp(2.6rem,10vw,4rem);font-weight:800;color:#333;line-height:1;animation:bounceIn .35s ease}
+  .eq-op{font-family:'Baloo 2',sans-serif;font-size:clamp(2rem,8vw,3.2rem);font-weight:800;line-height:1;padding:0 4px}
+  .eq-op.plus{color:#5DBB63}.eq-op.minus{color:#FF6B6B}
+  .eq-eq{font-family:'Baloo 2',sans-serif;font-size:clamp(2rem,8vw,3rem);font-weight:800;color:#aaa;line-height:1}
+  .eq-blank{font-family:'Baloo 2',sans-serif;font-size:clamp(2.4rem,9vw,3.6rem);font-weight:800;color:#6C63FF;border-bottom:4px solid #6C63FF;min-width:60px;line-height:1.1;padding:0 8px}
+  .hint-text{font-size:.78rem;color:#bbb;font-weight:700;margin-top:2px;flex-shrink:0}
+
+  /* ── Visual dots helper ── */
+  .dots-row{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;max-width:300px;margin:0 auto;flex-shrink:0;min-height:24px}
+  .dot{width:clamp(14px,3vw,20px);height:clamp(14px,3vw,20px);border-radius:50%;animation:popIn .2s ease both}
+  .dot-a{background:#6C63FF}.dot-b{background:#FF6B6B}.dot-sub{background:#aaa}
+
+  /* ── Mode picker screen ── */
+  .picker-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:10px 0}
+  .picker-screen h2{font-family:'Baloo 2',sans-serif;font-size:1.6rem;color:white;text-shadow:2px 2px 0 rgba(0,0,0,.15);margin-bottom:18px;text-align:center}
+  .mode-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;width:100%}
+  .mode-card{background:white;border-radius:22px;padding:20px 16px 16px;width:140px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:all .22s;text-align:center;border:3px solid transparent;flex-shrink:0}
+  .mode-card:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 14px 32px rgba(0,0,0,.18)}
+  .mode-card.selected{border-color:#6C63FF;background:#f3f0ff}
+  .mode-card-emoji{font-size:3rem;line-height:1;margin-bottom:8px}
+  .mode-card-label{font-family:'Baloo 2',sans-serif;font-size:1.1rem;font-weight:800;color:#333;margin-bottom:4px}
+  .mode-card-desc{font-size:.75rem;color:#999;font-weight:600}
+  .picker-settings{background:rgba(255,255,255,.18);border-radius:20px;padding:16px 20px;margin:18px 0 0;width:100%;max-width:380px;backdrop-filter:blur(8px)}
+  .picker-settings-title{font-size:.72rem;font-weight:800;color:rgba(255,255,255,.8);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;text-align:center}
+  .picker-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .picker-row:last-child{margin-bottom:0}
+  .picker-row-label{font-size:.85rem;font-weight:700;color:white}
+  .picker-opts{display:flex;gap:6px;flex-wrap:wrap}
+  .picker-opt{padding:5px 12px;border:2px solid rgba(255,255,255,.5);border-radius:14px;background:rgba(255,255,255,.2);color:white;font-family:'Baloo 2',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .18s}
+  .picker-opt.active{background:white;color:#5b21b6;border-color:white}
+  .start-btn{display:block;width:100%;max-width:240px;margin:16px auto 0;padding:13px;background:linear-gradient(135deg,#6C63FF,#A78BFA);border:none;border-radius:50px;font-family:'Baloo 2',sans-serif;font-size:1.2rem;font-weight:700;color:white;cursor:pointer;box-shadow:0 4px 16px rgba(108,99,255,.4);transition:all .2s}
+  .start-btn:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(108,99,255,.55)}
+
+  /* ── Change mode button ── */
+  .change-mode-btn{padding:8px 28px;background:rgba(108,99,255,.12);border:2px solid #6C63FF;border-radius:50px;font-family:'Baloo 2',sans-serif;font-size:.95rem;font-weight:700;color:#6C63FF;cursor:pointer;transition:all .2s}
+  .change-mode-btn:hover{background:rgba(108,99,255,.22)}
+
+  /* ── Compare mode buttons ── */
+  .cmp-answers{display:flex;flex-direction:row;gap:10px;justify-content:center;flex-shrink:0;margin-top:8px}
+  .cmp-btn{flex:1;max-width:120px;padding:12px 6px 8px;border:3px solid transparent;border-radius:18px;font-family:'Baloo 2',sans-serif;font-size:1.5rem;font-weight:800;cursor:pointer;transition:all .2s;outline:none;line-height:1.2;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .cmp-btn .cmp-icon{font-size:2rem;line-height:1}
+  .cmp-btn .cmp-label{font-size:.7rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+  .cmp-btn:nth-child(1){background:#FFF0F0;border-color:#FFD0D0;color:#CC4444}
+  .cmp-btn:nth-child(2){background:#F0FFF4;border-color:#C0F0D0;color:#226633}
+  .cmp-btn:nth-child(3){background:#F0F8FF;border-color:#C0E0FF;color:#2266BB}
+  .cmp-btn:hover:not(:disabled){transform:translateY(-4px) scale(1.06);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .cmp-btn:active:not(:disabled){transform:scale(.93)}
+  .cmp-btn.correct{background:#d4f5dc!important;border-color:#5DBB63!important;color:#226633!important;animation:correctPop .4s ease}
+  .cmp-btn.wrong{background:#ffe0e0!important;border-color:#FF6B6B!important;color:#cc2222!important;animation:wrongShake .4s ease}
+  .cmp-btn:disabled{cursor:default}
+  .cmp-box{display:flex;align-items:center;justify-content:center;gap:16px;flex-shrink:0}
+  .cmp-blank{font-family:'Baloo 2',sans-serif;font-size:clamp(2.4rem,10vw,3.8rem);font-weight:800;color:#6C63FF;border-bottom:4px solid #6C63FF;min-width:52px;text-align:center;line-height:1.2;padding:0 6px}
+  .negative-badge{display:inline-block;background:#FF6B6B;color:white;font-size:.65rem;font-weight:800;padding:2px 7px;border-radius:8px;margin-left:6px;letter-spacing:.5px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div class="bg-scene"></div>
+<div class="planet"></div>
+<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+
+<header>
+  <h1>🔢 Math Adventure! ⭐</h1>
+  <div class="subtitle" id="headerSub">Choose your challenge!</div>
+</header>
+
+<div class="score-area" id="scoreArea" style="display:none">
+  <div class="score-pill">⭐ Score: <span id="score">0</span></div>
+  <div class="score-pill" id="bestPill">🏆 Best: <span id="best">0</span></div>
+</div>
+
+<div class="toggles-area" id="togglesArea" style="display:none">
+  <button class="settings-btn" onclick="showPicker()">🏠 Menu</button>
+  <button class="settings-btn" onclick="openSettings()">⚙️ Settings</button>
+  <button class="mode-btn" id="btnEndless" onclick="toggleEndless()">🔟 10 Rounds</button>
+  <button class="mode-btn" id="btnDots"    onclick="toggleDots()">🔵 Show Dots</button>
+</div>
+
+<div class="game-container">
+
+  <!-- ══ MODE PICKER ══ -->
+  <div class="picker-screen" id="pickerScreen">
+    <h2>What do you want to learn? 🧮</h2>
+    <div class="mode-cards">
+      <div class="mode-card" id="cardAdd" onclick="selectOp('add')">
+        <div class="mode-card-emoji">➕</div>
+        <div class="mode-card-label">Addition</div>
+        <div class="mode-card-desc">Add numbers together</div>
+      </div>
+      <div class="mode-card" id="cardSub" onclick="selectOp('sub')">
+        <div class="mode-card-emoji">➖</div>
+        <div class="mode-card-label">Subtraction</div>
+        <div class="mode-card-desc">Take numbers away</div>
+      </div>
+      <div class="mode-card" id="cardMix" onclick="selectOp('mix')">
+        <div class="mode-card-emoji">🔀</div>
+        <div class="mode-card-label">Mixed</div>
+        <div class="mode-card-desc">Both + and −</div>
+      </div>
+      <div class="mode-card" id="cardCmp" onclick="selectOp('cmp')">
+        <div class="mode-card-emoji">⚖️</div>
+        <div class="mode-card-label">Compare</div>
+        <div class="mode-card-desc">Is it &lt;, &gt; or =?</div>
+      </div>
+    </div>
+
+    <div class="picker-settings">
+      <div class="picker-settings-title">⚙️ Settings</div>
+
+      <div class="picker-row">
+        <span class="picker-row-label">Max number</span>
+        <div class="picker-opts" id="pickerMax">
+          <button class="picker-opt" onclick="setMax(5)">5</button>
+          <button class="picker-opt active" onclick="setMax(10)">10</button>
+          <button class="picker-opt" onclick="setMax(20)">20</button>
+        </div>
+      </div>
+
+      <div class="picker-row" id="rowNegative" style="display:none">
+        <span class="picker-row-label">Allow negative results</span>
+        <div class="picker-opts" id="pickerNeg">
+          <button class="picker-opt active" onclick="setNeg(false)">No</button>
+          <button class="picker-opt" onclick="setNeg(true)">Yes</button>
+        </div>
+      </div>
+
+      <div class="picker-row">
+        <span class="picker-row-label">Rounds</span>
+        <div class="picker-opts" id="pickerRounds">
+          <button class="picker-opt" onclick="setRounds(5)">5</button>
+          <button class="picker-opt active" onclick="setRounds(10)">10</button>
+          <button class="picker-opt" onclick="setRounds(20)">20</button>
+          <button class="picker-opt" onclick="setRounds(0)">♾️</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn" onclick="startGame()" disabled>Pick a mode first! 👆</button>
+  </div>
+
+  <!-- ══ GAME CARD ══ -->
+  <div style="display:none;flex-direction:column;flex:1 1 0;min-height:0" id="gameArea">
+    <div class="stars-bar" id="starsBar"></div>
+
+    <div class="question-card" id="questionCard">
+      <div class="progress-text" id="progressText">Question 1 of 10</div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+
+      <div class="equation-area">
+        <div class="equation-emoji" id="eqEmoji">🧮</div>
+        <div class="equation-box" id="calcBox">
+          <span class="eq-num" id="eqA">3</span>
+          <span class="eq-op" id="eqOp">+</span>
+          <span class="eq-num" id="eqB">4</span>
+          <span class="eq-eq">=</span>
+          <span class="eq-blank">?</span>
+        </div>
+        <div class="cmp-box" id="cmpBox" style="display:none">
+          <span class="eq-num" id="cmpA">7</span>
+          <span class="cmp-blank">?</span>
+          <span class="eq-num" id="cmpB">5</span>
+        </div>
+        <div class="dots-row" id="dotsRow"></div>
+        <div class="hint-text" id="hintText"></div>
+      </div>
+
+      <div class="answers" id="calcAnswers">
+        <button class="answer-btn" id="btn0"></button>
+        <button class="answer-btn" id="btn1"></button>
+        <button class="answer-btn" id="btn2"></button>
+      </div>
+
+      <div class="cmp-answers" id="cmpAnswers" style="display:none">
+        <button class="cmp-btn" id="cbtn0"></button>
+        <button class="cmp-btn" id="cbtn1"></button>
+        <button class="cmp-btn" id="cbtn2"></button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+      <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next! ➡️</button>
+    </div>
+
+    <!-- ══ END SCREEN ══ -->
+    <div class="end-screen" id="endScreen">
+      <div style="font-size:5rem;margin-bottom:8px">🎉</div>
+      <h2>Well done!</h2>
+      <div class="end-score" id="endScore"></div>
+      <button class="play-again-btn" onclick="startGame()">Play Again! 🔄</button>
+      <button class="change-mode-btn" onclick="showPicker()">Change Mode 🔀</button>
+    </div>
+  </div>
+
+</div><!-- /game-container -->
+
+<!-- Settings overlay (in-game) -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box">
+    <h2>⚙️ Settings</h2>
+    <div class="s-section">
+      <div class="s-label">Max number</div>
+      <div class="s-row" id="sMax">
+        <button class="s-opt" onclick="setMax(5);startGame()">5</button>
+        <button class="s-opt active" onclick="setMax(10);startGame()">10</button>
+        <button class="s-opt" onclick="setMax(20);startGame()">20</button>
+      </div>
+    </div>
+    <div class="s-section" id="sNegSection">
+      <div class="s-label">Allow negatives (subtraction)</div>
+      <div class="s-row" id="sNeg">
+        <button class="s-opt active" onclick="setNeg(false);startGame()">No negatives</button>
+        <button class="s-opt" onclick="setNeg(true);startGame()">Allow negatives</button>
+      </div>
+    </div>
+    <div class="s-section">
+      <div class="s-label">Rounds</div>
+      <div class="s-row" id="sRounds">
+        <button class="s-opt" onclick="setRounds(5);startGame()">5</button>
+        <button class="s-opt active" onclick="setRounds(10);startGame()">10</button>
+        <button class="s-opt" onclick="setRounds(20);startGame()">20</button>
+        <button class="s-opt" onclick="setRounds(0);startGame()">♾️ Endless</button>
+      </div>
+    </div>
+    <button class="s-close" onclick="closeSettings()">Done ✓</button>
+  </div>
+</div>
+
+<script>
+// ── Config ──
+let op       = null;   // 'add' | 'sub' | 'mix'
+let maxNum   = 10;
+let allowNeg = false;
+let rounds   = 10;     // 0 = endless
+let showDots = true;
+
+// ── State ──
+let score    = 0;
+let best     = 0;
+let currentQ = 0;
+let answered = false;
+let correctAnswer = 0;
+let qA = 0, qB = 0, qOp = '+';
+let usedQuestions = [];
+let endless  = false;
+
+// ── Emoji sets per operation ──
+const addEmojis = ['🍎','🌟','🐶','🎈','🍕','🦋','⚽','🎁','🍦','🐱','🚀','🌈'];
+const subEmojis = ['🍰','🍪','🎂','🧁','🍬','🍭','🍡','🍩','🎃','🌮','🍔','🥨'];
+const mixEmojis = ['🧮','🔢','⭐','🎯','🏆','🎲','🎪','🎨','🎭','🌠'];
+
+// ── Highscores ──
+function bestKey(){ return `math_${op}_m${maxNum}_${allowNeg?'neg':'pos'}_${rounds||'inf'}`; }
+function loadBest(){ try{ return JSON.parse(localStorage.getItem('mathBests')||'{}')[bestKey()]||0; }catch(e){return 0;} }
+function saveBest(v){ try{ const b=JSON.parse(localStorage.getItem('mathBests')||'{}'); if(!b[bestKey()]||v>b[bestKey()]){b[bestKey()]=v;localStorage.setItem('mathBests',JSON.stringify(b));} }catch(e){} }
+
+// ── Sounds ──
+let audioCtx=null;
+function getCtx(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function playSuccess(){
+  try{
+    const ctx=getCtx();
+    [[523,0],[659,.12],[784,.24],[1047,.38]].forEach(([f,w])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);o.type='sine';
+      o.frequency.setValueAtTime(f,ctx.currentTime+w);
+      g.gain.setValueAtTime(.35,ctx.currentTime+w);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+w+.3);
+      o.start(ctx.currentTime+w);o.stop(ctx.currentTime+w+.35);
+    });
+  }catch(e){}
+}
+function playFail(){
+  try{
+    const ctx=getCtx();
+    [[220,0,'sawtooth'],[175,.22,'sawtooth']].forEach(([f,w,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);o.type=t;
+      o.frequency.setValueAtTime(f,ctx.currentTime+w);
+      o.frequency.exponentialRampToValueAtTime(f*.65,ctx.currentTime+w+.28);
+      g.gain.setValueAtTime(.25,ctx.currentTime+w);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+w+.3);
+      o.start(ctx.currentTime+w);o.stop(ctx.currentTime+w+.32);
+    });
+  }catch(e){}
+}
+
+// ── Confetti ──
+function spawnConfetti(count=15){
+  const cl=['#FF6B6B','#FFD700','#4ECDC4','#A78BFA','#FF8DC7','#5DBB63','#FF9F43'];
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');el.className='confetti-piece';
+      el.style.cssText=`left:${Math.random()*100}%;background:${cl[Math.floor(Math.random()*cl.length)]};animation-duration:${1+Math.random()*2}s;animation-delay:${Math.random()*.4}s;transform:rotate(${Math.random()*360}deg);border-radius:${Math.random()>.5?'50%':'2px'}`;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),3000);
+    },i*50);
+  }
+}
+
+// ── Picker ──
+function selectOp(o){
+  op=o;
+  document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('card'+o.charAt(0).toUpperCase()+o.slice(1)).classList.add('selected');
+  document.getElementById('startBtn').disabled=false;
+  document.getElementById('startBtn').textContent='Let\'s Go! 🚀';
+  // Show negative option only for sub/mix
+  document.getElementById('rowNegative').style.display=(o==='sub'||o==='mix')?'flex':'none';
+}
+
+function setMax(n){
+  maxNum=n;
+  setActiveOpt('pickerMax',n);
+  setActiveOpt('sMax',n);
+}
+function setNeg(v){
+  allowNeg=v;
+  setActiveOpt('pickerNeg',v?'Yes':'No');
+  setActiveOpt('sNeg',v?'Allow negatives':'No negatives');
+}
+function setRounds(n){
+  rounds=n;
+  endless=(n===0);
+  const label=n===0?'♾️':String(n);
+  setActiveOpt('pickerRounds',label);
+  setActiveOpt('sRounds',label==='♾️'?'♾️ Endless':label);
+  document.getElementById('btnEndless').textContent=endless?'♾️ Endless':'🔟 '+rounds+' Rounds';
+  document.getElementById('btnEndless').classList.toggle('active',endless);
+}
+function setActiveOpt(containerId, value){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  el.querySelectorAll('button').forEach(b=>{
+    b.classList.toggle('active', b.textContent.trim()===String(value));
+  });
+}
+
+// ── Toggles (in-game header) ──
+function toggleEndless(){
+  setRounds(endless?10:0);
+  startGame();
+}
+function toggleDots(){
+  showDots=!showDots;
+  document.getElementById('btnDots').classList.toggle('active',showDots);
+  document.getElementById('btnDots').textContent=showDots?'🔵 Show Dots':'⬜ Hide Dots';
+  renderDots();
+}
+
+// ── Show/hide screens ──
+function showPicker(){
+  document.getElementById('pickerScreen').style.display='';
+  document.getElementById('gameArea').style.display='none';
+  document.getElementById('scoreArea').style.display='none';
+  document.getElementById('togglesArea').style.display='none';
+  document.getElementById('headerSub').textContent='Choose your challenge!';
+}
+function showGame(){
+  document.getElementById('pickerScreen').style.display='none';
+  document.getElementById('gameArea').style.display='flex';
+  document.getElementById('scoreArea').style.display='flex';
+  document.getElementById('togglesArea').style.display='flex';
+  // Show/hide negative setting in modal
+  document.getElementById('sNegSection').style.display=(op==='sub'||op==='mix')?'block':'none';
+  // Hide dot toggle for compare mode
+  document.getElementById('btnDots').style.display=(op==='cmp')?'none':'';
+}
+
+// ── Generate question ──
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+// cmpCorrect stores '<', '>', or '=' for compare mode
+let cmpCorrect = '';
+let cmpLeft = 0, cmpRight = 0;
+
+function generateQuestion(){
+  if(op==='cmp'){
+    // Generate two numbers; bias toward equal ~20% of the time
+    const forceEqual = Math.random() < 0.2;
+    cmpLeft = randInt(0, maxNum);
+    cmpRight = forceEqual ? cmpLeft : randInt(0, maxNum);
+    cmpCorrect = cmpLeft < cmpRight ? '<' : cmpLeft > cmpRight ? '>' : '=';
+    return;
+  }
+
+  // pick operator
+  let thisOp;
+  if(op==='add') thisOp='+';
+  else if(op==='sub') thisOp='-';
+  else thisOp=Math.random()>.5?'+':'-';
+
+  let a,b,ans;
+  let attempts=0;
+  do{
+    a=randInt(0,maxNum);
+    b=randInt(0,maxNum);
+    if(thisOp==='+'){
+      ans=a+b;
+      // keep answer within 2*maxNum
+      if(ans>maxNum*2) { b=randInt(0,maxNum-a); ans=a+b; }
+    } else {
+      if(!allowNeg && b>a){ [a,b]=[b,a]; } // swap so result ≥ 0
+      ans=a-b;
+    }
+    attempts++;
+  } while(attempts<20 && ans<(allowNeg?-maxNum:0));
+
+  qA=a; qB=b; qOp=thisOp; correctAnswer=ans;
+}
+
+// ── Generate wrong answers (unique, plausible) ──
+function generateOptions(correct){
+  const opts=new Set([correct]);
+  let tries=0;
+  while(opts.size<3 && tries<100){
+    tries++;
+    const delta=randInt(1,Math.max(3,Math.ceil(maxNum/2)));
+    const sign=Math.random()>.5?1:-1;
+    const cand=correct+sign*delta;
+    if(!allowNeg && cand<0) continue;
+    if(cand===correct) continue;
+    opts.add(cand);
+  }
+  // Fallback if still not 3
+  let extra=correct-1;
+  while(opts.size<3){ if(!opts.has(extra)&&(allowNeg||extra>=0)) opts.add(extra); extra--; }
+  return shuffle([...opts]);
+}
+
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+
+// ── Render dots visual ──
+function renderDots(){
+  const row=document.getElementById('dotsRow');
+  if(!showDots||qOp==='-'&&qA>10){ row.innerHTML=''; return; }
+  row.innerHTML='';
+  if(qOp==='+'){
+    for(let i=0;i<qA;i++){const d=document.createElement('span');d.className='dot dot-a';d.style.animationDelay=(i*.04)+'s';row.appendChild(d);}
+    for(let i=0;i<qB;i++){const d=document.createElement('span');d.className='dot dot-b';d.style.animationDelay=((qA+i)*.04)+'s';row.appendChild(d);}
+  } else {
+    for(let i=0;i<qA;i++){
+      const d=document.createElement('span');
+      d.className='dot '+(i>=qA-qB?'dot-sub':'dot-a');
+      d.style.animationDelay=(i*.04)+'s';
+      if(i>=qA-qB) d.style.opacity='.3';
+      row.appendChild(d);
+    }
+  }
+}
+
+const cmpEmojis=['⚖️','🏋️','🎯','🔢','📊','🧩','🎲','🌡️','⚡','🏆'];
+// ── Emoji for current question ──
+function pickEmoji(){
+  const pool=op==='add'?addEmojis:op==='sub'?subEmojis:op==='cmp'?cmpEmojis:mixEmojis;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// ── Load question ──
+function loadQuestion(){
+  answered=false;
+  generateQuestion();
+
+  const isEndless=endless;
+  const total=rounds||'∞';
+  document.getElementById('progressText').textContent=
+    isEndless?`Question ${currentQ+1} — Keep going! 🔥`:`Question ${currentQ+1} of ${total}`;
+  document.getElementById('progressBar').style.width=
+    isEndless?'100%':((currentQ/rounds)*100)+'%';
+
+  document.getElementById('eqEmoji').textContent=pickEmoji();
+
+  // Feedback reset
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('feedback').textContent='';
+  const nb=document.getElementById('nextBtn');
+  nb.classList.remove('show'); nb.textContent='Next! ➡️'; nb.onclick=nextQuestion;
+
+  if(op==='cmp'){
+    // Show compare layout, hide calc layout
+    document.getElementById('calcBox').style.display='none';
+    document.getElementById('cmpBox').style.display='flex';
+    document.getElementById('cmpA').textContent=cmpLeft;
+    document.getElementById('cmpB').textContent=cmpRight;
+    document.getElementById('hintText').textContent=`Is ${cmpLeft} less than, greater than, or equal to ${cmpRight}?`;
+    document.getElementById('dotsRow').innerHTML='';
+
+    // Show cmp buttons, hide normal answer buttons
+    document.getElementById('calcAnswers').style.display='none';
+    document.getElementById('cmpAnswers').style.display='flex';
+
+    // Fixed order: index 0=<, 1==, 2=>
+    const cmpDefs=[
+      {key:'<', icon:'◀️', label:'Less'},
+      {key:'=', icon:'🟰', label:'Equal'},
+      {key:'>', icon:'▶️', label:'More'}
+    ];
+    const correctCmpIdx = cmpDefs.findIndex(d=>d.key===cmpCorrect);
+    cmpDefs.forEach((def,i)=>{
+      const btn=document.getElementById('cbtn'+i);
+      btn.className='cmp-btn'; btn.disabled=false;
+      btn.innerHTML=`<span class="cmp-icon">${def.icon}</span><span class="cmp-label">${def.label}</span>`;
+      btn.onclick=(()=>{const idx=i,ci=correctCmpIdx;return()=>checkAnswerCmp(idx,ci);})(  );
+    });
+    return;
+  }
+
+  // Normal calc mode — show calc layout, hide compare
+  document.getElementById('calcBox').style.display='flex';
+  document.getElementById('cmpBox').style.display='none';
+  document.getElementById('calcAnswers').style.display='';
+  document.getElementById('cmpAnswers').style.display='none';
+
+  // Equation display
+  document.getElementById('eqA').textContent=qA;
+  document.getElementById('eqOp').textContent=qOp;
+  document.getElementById('eqOp').className='eq-op '+(qOp==='+'?'plus':'minus');
+  document.getElementById('eqB').textContent=qB;
+
+  // Hint text
+  const ht=document.getElementById('hintText');
+  if(qOp==='+') ht.textContent=`What is ${qA} + ${qB}?`;
+  else {
+    ht.innerHTML=`What is ${qA} − ${qB}?`+(allowNeg&&correctAnswer<0?' <span class="negative-badge">can be negative!</span>':'');
+  }
+
+  renderDots();
+
+  // Answer buttons
+  const opts=generateOptions(correctAnswer);
+  const correctIdx=opts.indexOf(correctAnswer);
+  for(let i=0;i<3;i++){
+    const btn=document.getElementById('btn'+i);
+    btn.className='answer-btn'; btn.disabled=false;
+    btn.textContent=opts[i];
+    btn.onclick=(()=>{const idx=i,ci=correctIdx;return()=>checkAnswer(idx,ci,opts);})(  );
+  }
+}
+
+const goodMsg=["Super! 🌟","Wunderbar! ✨","Correct! 🎉","Genius! 🚀","Fantastic! 🌈","Yes! 👍","Nailed it! 💪"];
+const badMsg=["Not quite! Try next one 😊","Almost! 🤔","Keep going! 💪","You got this! 🌟"];
+
+function checkAnswer(idx,correctIdx,opts){
+  if(answered) return;
+  answered=true;
+  document.querySelectorAll('.answer-btn').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('feedback');
+
+  if(idx===correctIdx){
+    score++;
+    document.getElementById('score').textContent=score;
+    if(score>best){best=score;saveBest(best);document.getElementById('best').textContent=best;}
+    document.getElementById('btn'+idx).classList.add('correct');
+    fb.textContent=goodMsg[Math.floor(Math.random()*goodMsg.length)];
+    fb.className='feedback good show';
+    if(!endless) document.getElementById('star'+currentQ)?.classList.add('lit');
+    playSuccess(); spawnConfetti();
+  } else {
+    document.getElementById('btn'+idx).classList.add('wrong');
+    document.getElementById('btn'+correctIdx).classList.add('correct');
+    playFail();
+    if(endless){
+      if(score>best){best=score;saveBest(best);document.getElementById('best').textContent=best;}
+      fb.textContent=`Game over! You got ${score} in a row! 💪`;
+      fb.className='feedback bad show';
+      const nb=document.getElementById('nextBtn');
+      nb.textContent='Try Again! 🔄'; nb.onclick=startGame;
+      nb.classList.add('show');
+      return;
+    }
+    fb.textContent=`The answer was ${correctAnswer} ${badMsg[Math.floor(Math.random()*badMsg.length)]}`;
+    fb.className='feedback bad show';
+  }
+  document.getElementById('nextBtn').classList.add('show');
+}
+
+function checkAnswerCmp(idx, correctIdx){
+  if(answered) return;
+  answered=true;
+  document.querySelectorAll('.cmp-btn').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('feedback');
+  const symbols=['◀️ Less','🟰 Equal','▶️ More'];
+
+  if(idx===correctIdx){
+    score++;
+    document.getElementById('score').textContent=score;
+    if(score>best){best=score;saveBest(best);document.getElementById('best').textContent=best;}
+    document.getElementById('cbtn'+idx).classList.add('correct');
+    fb.textContent=goodMsg[Math.floor(Math.random()*goodMsg.length)];
+    fb.className='feedback good show';
+    if(!endless) document.getElementById('star'+currentQ)?.classList.add('lit');
+    playSuccess(); spawnConfetti();
+  } else {
+    document.getElementById('cbtn'+idx).classList.add('wrong');
+    document.getElementById('cbtn'+correctIdx).classList.add('correct');
+    playFail();
+    if(endless){
+      if(score>best){best=score;saveBest(best);document.getElementById('best').textContent=best;}
+      fb.textContent=`Game over! You got ${score} in a row! 💪`;
+      fb.className='feedback bad show';
+      const nb=document.getElementById('nextBtn');
+      nb.textContent='Try Again! 🔄'; nb.onclick=startGame;
+      nb.classList.add('show');
+      return;
+    }
+    const symLabel={'<':'◀️ less than','=':'🟰 equal to','>':'▶️ more than'};
+    fb.textContent=`${cmpLeft} is ${symLabel[cmpCorrect]} ${cmpRight} — ${badMsg[Math.floor(Math.random()*badMsg.length)]}`;
+    fb.className='feedback bad show';
+  }
+  document.getElementById('nextBtn').classList.add('show');
+}
+
+function nextQuestion(){
+  currentQ++;
+  if(!endless && currentQ>=rounds){ endGame(); return; }
+  if(endless && currentQ>=10000) currentQ=0;
+  loadQuestion();
+}
+
+function endGame(){
+  if(score>best){best=score;saveBest(best);}
+  document.getElementById('best').textContent=best;
+  document.getElementById('progressBar').style.width='100%';
+  setTimeout(()=>{
+    document.getElementById('questionCard').style.display='none';
+    document.getElementById('endScreen').classList.add('show');
+    const pct=Math.round(score/rounds*100);
+    const msg=pct>=90?"🏆 Perfect! You're a math superstar!":pct>=70?"🌟 Great job! Keep practicing!":pct>=50?"👍 Good work! You're improving!":"💪 Keep going! Practice makes perfect!";
+    document.getElementById('endScore').innerHTML=`You got <strong>${score} out of ${rounds}</strong> correct!<br><br>${msg}`;
+    if(pct>=70) spawnConfetti(40);
+  },600);
+}
+
+function setupStars(){
+  const bar=document.getElementById('starsBar');
+  bar.innerHTML='';
+  if(endless){bar.style.display='none';return;}
+  bar.style.display='flex';
+  for(let i=0;i<rounds;i++){
+    const s=document.createElement('span');s.className='star';s.textContent='⭐';s.id='star'+i;
+    bar.appendChild(s);
+  }
+}
+
+function startGame(){
+  if(!op) return;
+  closeSettings();
+  score=0; currentQ=0;
+  best=loadBest();
+  document.getElementById('score').textContent=0;
+  document.getElementById('best').textContent=best;
+  document.getElementById('bestPill').childNodes[0].textContent=endless?'🏆 Best streak: ':'🏆 Best: ';
+  document.getElementById('endScreen').classList.remove('show');
+  document.getElementById('questionCard').style.display='';
+  document.getElementById('btnEndless').textContent=endless?'♾️ Endless':`🔟 ${rounds} Rounds`;
+  document.getElementById('btnDots').textContent=showDots?'🔵 Show Dots':'⬜ Hide Dots';
+  document.getElementById('btnDots').classList.toggle('active',showDots);
+  const opLabel=op==='add'?'➕ Addition':op==='sub'?'➖ Subtraction':op==='cmp'?'⚖️ Compare':'🔀 Mixed';
+  document.getElementById('headerSub').textContent=opLabel+' — You can do it! 💪';
+  showGame();
+  setupStars();
+  loadQuestion();
+}
+
+function openSettings(){ document.getElementById('settingsOverlay').classList.add('show'); }
+function closeSettings(){ document.getElementById('settingsOverlay').classList.remove('show'); }
+
+// ── Init ──
+showPicker();
+setMax(10);
+setRounds(10);
+</script>
+
+<footer><a href="https://games.mathiasdenzin.com">🎮 games.mathiasdenzin.com</a></footer>
+</body>
+</html>
