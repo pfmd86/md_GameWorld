@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathias' Game World 🌟</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  :root {
+    --math-a: #6C63FF; --math-b: #A78BFA;
+    --german-a: #FF6B6B; --german-b: #FF8DC7;
+  }
+
+  /* Home uses slightly larger/repositioned sun */
+  .sun { top: 24px; right: 56px; width: 76px; height: 76px; }
+
+  /* Home clouds use solid white with opacity */
+  .cloud { background: white; opacity: .9; }
+  .cloud::before, .cloud::after { background: white; }
+
+  /* Home header has more top padding */
+  header { padding: 20px 24px 6px; }
+
+  /* Home footer is slightly taller */
+  footer { padding: 6px 0 10px; font-size: .72rem; color: rgba(255,255,255,.65); }
+
+  /* ── Little bouncing animals in the grass ── */
+  .critter {
+    position: fixed; bottom: 2px; font-size: 1.8rem;
+    animation: hop 2s ease-in-out infinite;
+    z-index: 0; user-select: none; pointer-events: none;
+  }
+  .critter:nth-child(1) { left: 8%;  animation-delay: 0s; }
+  .critter:nth-child(2) { left: 22%; animation-delay: .4s; }
+  .critter:nth-child(3) { left: 42%; animation-delay: .9s; }
+  .critter:nth-child(4) { left: 62%; animation-delay: .2s; }
+  .critter:nth-child(5) { left: 80%; animation-delay: .7s; }
+  .critter:nth-child(6) { left: 92%; animation-delay: 1.1s; }
+  @keyframes hop {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+
+  /* ── Logo & tagline ── */
+  .logo {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: clamp(2rem, 7vw, 3.2rem); font-weight: 800;
+    color: #fff;
+    text-shadow: 4px 4px 0 #FF6B6B, 7px 7px 0 rgba(0,0,0,.1);
+    letter-spacing: 2px; line-height: 1.1;
+    animation: titleBounce .6s ease both;
+  }
+  @keyframes titleBounce {
+    0%   { transform: translateY(-30px); opacity: 0; }
+    70%  { transform: translateY(6px); }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .tagline {
+    font-size: clamp(.8rem, 2.5vw, 1rem); color: rgba(255,255,255,.92);
+    font-weight: 700; margin-top: 4px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,.2);
+    animation: fadeUp .5s .2s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Grid of game tiles ── */
+  .games-grid {
+    display: flex; justify-content: center; align-items: center;
+    gap: clamp(16px, 4vw, 32px); flex-wrap: wrap;
+    flex: 1 1 0; padding: 10px 24px 48px; min-height: 0;
+  }
+
+  /* ── Game tile ── */
+  .game-tile {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: clamp(150px, 38vw, 220px); aspect-ratio: 1 / 1.08;
+    border-radius: 28px; border: none; cursor: pointer; text-decoration: none;
+    position: relative; overflow: hidden;
+    box-shadow: 0 10px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1);
+    transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease;
+    animation: tileIn .5s ease both;
+    -webkit-tap-highlight-color: transparent; outline: none;
+  }
+  .game-tile:nth-child(1) { animation-delay: .15s; }
+  .game-tile:nth-child(2) { animation-delay: .3s; }
+  .game-tile:nth-child(3) { animation-delay: .45s; }
+  .game-tile:nth-child(4) { animation-delay: .6s; }
+  @keyframes tileIn {
+    0%   { opacity: 0; transform: scale(.7) translateY(30px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .game-tile:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 22px 48px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.12);
+  }
+  .game-tile:active { transform: scale(.95); box-shadow: 0 6px 16px rgba(0,0,0,.18); }
+  .game-tile::after {
+    content: ''; position: absolute; top: -60%; left: -80%;
+    width: 60%; height: 220%; background: rgba(255,255,255,.18);
+    transform: skewX(-20deg); transition: left .5s ease; pointer-events: none;
+  }
+  .game-tile:hover::after { left: 130%; }
+
+  .tile-math   { background: linear-gradient(145deg, var(--math-a), var(--math-b)); }
+  .tile-german { background: linear-gradient(145deg, var(--german-a), var(--german-b)); }
+  .tile-time   { background: linear-gradient(145deg, #2EC4B6, #1A936F); }
+  .tile-memory { background: linear-gradient(145deg, #FF6B9D, #c0365e); }
+
+  .tile-bg-emoji {
+    position: absolute; font-size: clamp(5rem, 16vw, 8rem); opacity: .12;
+    bottom: -12px; right: -8px; user-select: none; pointer-events: none; line-height: 1;
+  }
+  .tile-icon {
+    font-size: clamp(3.2rem, 12vw, 5rem); line-height: 1; margin-bottom: 10px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.2));
+    animation: iconWiggle 3s ease-in-out infinite;
+  }
+  .game-tile:nth-child(2) .tile-icon { animation-delay: .8s; }
+  .game-tile:nth-child(3) .tile-icon { animation-delay: 1.6s; }
+  .game-tile:nth-child(4) .tile-icon { animation-delay: 2.4s; }
+  @keyframes iconWiggle {
+    0%,90%,100% { transform: rotate(0deg) scale(1); }
+    94%          { transform: rotate(-12deg) scale(1.1); }
+    97%          { transform: rotate(10deg) scale(1.1); }
+  }
+  .tile-name {
+    font-family: 'Baloo 2', sans-serif; font-size: clamp(1.3rem, 5vw, 1.9rem);
+    font-weight: 800; color: white; text-shadow: 2px 2px 0 rgba(0,0,0,.15);
+    letter-spacing: 1px; z-index: 1;
+  }
+  .tile-sub {
+    font-size: clamp(.65rem, 2vw, .8rem); color: rgba(255,255,255,.82);
+    font-weight: 700; margin-top: 3px; z-index: 1;
+  }
+  .play-badge {
+    position: absolute; bottom: 14px; right: 14px;
+    background: rgba(255,255,255,.28); border-radius: 50%;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; backdrop-filter: blur(4px); transition: background .2s;
+  }
+  .game-tile:hover .play-badge { background: rgba(255,255,255,.45); }
+
+  /* ── Parent ? button ── */
+  .parent-btn {
+    position: fixed; top: 14px; left: 16px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,.28); border: 2px solid rgba(255,255,255,.5);
+    color: white; font-family: 'Baloo 2', sans-serif; font-size: 1.1rem; font-weight: 800;
+    cursor: pointer; backdrop-filter: blur(6px); transition: all .2s;
+    display: flex; align-items: center; justify-content: center; z-index: 10;
+  }
+  .parent-btn:hover { background: rgba(255,255,255,.45); transform: scale(1.1); }
+
+  /* ── Modals ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 200;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .gate-box {
+    background: white; border-radius: 28px; padding: 28px 24px 22px;
+    max-width: 340px; width: 100%; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: popIn .25s ease;
+  }
+  .gate-box h3 { font-family: 'Baloo 2', sans-serif; font-size: 1.4rem; color: #333; margin-bottom: 6px; }
+  .gate-box p  { font-size: .9rem; color: #888; margin-bottom: 18px; line-height: 1.5; }
+  .gate-input {
+    width: 100%; padding: 12px 16px;
+    border: 2.5px solid #e5e5e5; border-radius: 14px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1.4rem; font-weight: 700;
+    text-align: center; color: #333; outline: none;
+    transition: border-color .2s; margin-bottom: 14px;
+  }
+  .gate-input:focus { border-color: #A78BFA; }
+  .gate-input.error { border-color: #FF6B6B; animation: wrongShake .4s ease; }
+  .gate-error { font-size: .82rem; color: #FF6B6B; font-weight: 700; margin-bottom: 10px; min-height: 18px; }
+  .gate-btns { display: flex; gap: 10px; justify-content: center; }
+  .gate-confirm {
+    padding: 10px 28px; background: linear-gradient(135deg, #A78BFA, #7c3aed);
+    border: none; border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1rem; font-weight: 700;
+    color: white; cursor: pointer; transition: transform .15s;
+  }
+  .gate-confirm:hover { transform: scale(1.04); }
+  .gate-cancel {
+    padding: 10px 24px; background: #f0f0f0; border: none; border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1rem; font-weight: 700;
+    color: #777; cursor: pointer;
+  }
+
+  .info-box {
+    background: white; border-radius: 28px; padding: 28px 24px 24px;
+    max-width: 400px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: popIn .25s ease;
+    max-height: 88dvh; overflow-y: auto;
+  }
+  .info-box h2 {
+    font-family: 'Baloo 2', sans-serif; font-size: 1.5rem; color: #333;
+    margin-bottom: 18px; text-align: center;
+  }
+  .info-section { margin-bottom: 18px; }
+  .info-section h3 {
+    font-family: 'Baloo 2', sans-serif; font-size: 1rem; color: #7c3aed;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .info-section p, .info-section li { font-size: .88rem; color: #666; line-height: 1.6; }
+  .info-section ul { padding-left: 18px; }
+  .info-divider { border: none; border-top: 2px solid #f0f0f0; margin: 18px 0; }
+  .bmc-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #FFDD00, #FFC300);
+    border: none; border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1.05rem; font-weight: 800;
+    color: #333; cursor: pointer; text-decoration: none;
+    box-shadow: 0 4px 16px rgba(255,195,0,.4);
+    transition: transform .15s, box-shadow .15s; margin-bottom: 12px;
+  }
+  .bmc-btn:hover { transform: scale(1.03); box-shadow: 0 8px 24px rgba(255,195,0,.5); }
+  .info-close {
+    display: block; width: 100%; padding: 11px;
+    background: #f0f0f0; border: none; border-radius: 50px;
+    font-family: 'Baloo 2', sans-serif; font-size: 1rem; font-weight: 700;
+    color: #666; cursor: pointer;
+  }
+  .info-close:hover { background: #e5e5e5; }
+</style>
+</head>
+<body>
+
+<div class="bg-scene"></div>
+<div class="sun"></div>
+<div class="cloud c1"></div>
+<div class="cloud c2"></div>
+<div class="cloud c3"></div>
+
+<!-- Parent info button -->
+<button class="parent-btn" onclick="openGate()" title="For parents">?</button>
+
+<!-- Gate modal -->
+<div class="modal-overlay" id="gateOverlay">
+  <div class="gate-box">
+    <h3>👋 For Grown-Ups</h3>
+    <p>To see information about these games, please answer a quick question to confirm you're an adult.</p>
+    <p style="font-size:.82rem;color:#bbb;margin-bottom:16px">What year were you born?</p>
+    <input class="gate-input" id="gateInput" type="number" placeholder="e.g. 1985" min="1900" max="2010" inputmode="numeric"/>
+    <div class="gate-error" id="gateError"></div>
+    <div class="gate-btns">
+      <button class="gate-cancel" onclick="closeGate()">Cancel</button>
+      <button class="gate-confirm" onclick="checkGate()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Info modal -->
+<div class="modal-overlay" id="infoOverlay">
+  <div class="info-box">
+    <h2>👨‍👩‍👧 For Parents</h2>
+
+    <div class="info-section">
+      <h3>🎮 About the Games</h3>
+      <p>These free educational games are designed to help young children (ages 4–8) practise essential early learning skills in a fun, distraction-free environment:</p>
+      <ul style="margin-top:8px">
+        <li><strong>🧮 Math</strong> — Addition, subtraction &amp; number comparison</li>
+        <li><strong>🇩🇪 Deutsch</strong> — German vocabulary with pictures &amp; audio</li>
+        <li><strong>⏰ Tell the Time</strong> — Reading analog clocks at 4 difficulty levels</li>
+      </ul>
+    </div>
+
+    <hr class="info-divider"/>
+
+    <div class="info-section">
+      <h3>🔒 Privacy &amp; Data</h3>
+      <p>Your child's privacy is fully protected:</p>
+      <ul style="margin-top:8px">
+        <li>All games run <strong>entirely in the browser</strong> — no server, no account</li>
+        <li><strong>No personal data is collected</strong> while playing</li>
+        <li>High scores are saved only in your browser's local storage and never leave the device</li>
+        <li>No ads, no trackers, no third-party analytics</li>
+        <li>No cookies beyond local storage for scores</li>
+      </ul>
+    </div>
+
+    <hr class="info-divider"/>
+
+    <div class="info-section">
+      <h3>☕ Support this project</h3>
+      <p style="margin-bottom:14px">If these games bring a smile to your child's face, a small donation helps keep them free and ad-free for everyone!</p>
+      <a class="bmc-btn" href="https://buymeacoffee.com/pfmd86" target="_blank" rel="noopener">
+        ☕ Buy me a coffee
+      </a>
+    </div>
+
+    <button class="info-close" onclick="closeInfo()">Close</button>
+  </div>
+</div>
+
+<!-- Grass critters -->
+<div class="critter">🐶</div>
+<div class="critter">🐱</div>
+<div class="critter">🐸</div>
+<div class="critter">🐰</div>
+<div class="critter">🦊</div>
+<div class="critter">🐤</div>
+
+<header>
+  <div class="logo">🎮 Game World!</div>
+  <div class="tagline">Pick a game and start learning! 🚀</div>
+</header>
+
+<div class="games-grid">
+
+  <a class="game-tile tile-math" href="/math/" target="_blank" rel="noopener">
+    <div class="tile-bg-emoji">🔢</div>
+    <div class="tile-icon">🧮</div>
+    <div class="tile-name">Math</div>
+    <div class="tile-sub">Add · Subtract · Compare</div>
+    <div class="play-badge">▶️</div>
+  </a>
+
+  <a class="game-tile tile-german" href="/german/" target="_blank" rel="noopener">
+    <div class="tile-bg-emoji">🇩🇪</div>
+    <div class="tile-icon">🌍</div>
+    <div class="tile-name">Deutsch</div>
+    <div class="tile-sub">Learn German Words</div>
+    <div class="play-badge">▶️</div>
+  </a>
+
+  <a class="game-tile tile-time" href="/time/" target="_blank" rel="noopener">
+    <div class="tile-bg-emoji">🕐</div>
+    <div class="tile-icon">⏰</div>
+    <div class="tile-name">Tell the Time</div>
+    <div class="tile-sub">Read the clock!</div>
+    <div class="play-badge">▶️</div>
+  </a>
+
+  <a class="game-tile tile-memory" href="/memory/" target="_blank" rel="noopener">
+    <div class="tile-bg-emoji">🃏</div>
+    <div class="tile-icon">🧠</div>
+    <div class="tile-name">Memory</div>
+    <div class="tile-sub">Find the pairs!</div>
+    <div class="play-badge">▶️</div>
+  </a>
+
+</div>
+
+<footer>games.mathiasdenzin.com</footer>
+
+<script>
+function openGate(){
+  document.getElementById('gateInput').value='';
+  document.getElementById('gateError').textContent='';
+  document.getElementById('gateInput').classList.remove('error');
+  document.getElementById('gateOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('gateInput').focus(), 150);
+}
+function closeGate(){
+  document.getElementById('gateOverlay').classList.remove('show');
+}
+function checkGate(){
+  const val = parseInt(document.getElementById('gateInput').value, 10);
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - val;
+  const input = document.getElementById('gateInput');
+  const err = document.getElementById('gateError');
+  if(isNaN(val) || val < 1900 || val > currentYear){
+    err.textContent = 'Please enter a valid birth year.';
+    input.classList.add('error');
+    setTimeout(()=>input.classList.remove('error'), 500);
+    return;
+  }
+  if(age < 18){
+    err.textContent = 'This section is for adults only 😊';
+    input.classList.add('error');
+    setTimeout(()=>input.classList.remove('error'), 500);
+    return;
+  }
+  closeGate();
+  openInfo();
+}
+function openInfo(){
+  document.getElementById('infoOverlay').classList.add('show');
+}
+function closeInfo(){
+  document.getElementById('infoOverlay').classList.remove('show');
+}
+// Allow Enter key to confirm gate
+document.getElementById('gateInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') checkGate();
+});
+// Close overlay on background click
+document.getElementById('gateOverlay').addEventListener('click', e=>{
+  if(e.target===document.getElementById('gateOverlay')) closeGate();
+});
+document.getElementById('infoOverlay').addEventListener('click', e=>{
+  if(e.target===document.getElementById('infoOverlay')) closeInfo();
+});
+</script>
+</body>
+</html>
