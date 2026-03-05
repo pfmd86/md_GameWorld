@@ -257,7 +257,7 @@ function loadQuestion(){
   document.getElementById('feedback').className='feedback';
   document.getElementById('feedback').textContent='';
   const nb=document.getElementById('nextBtn');
-  if(nb){ nb.classList.remove('show'); nb.textContent='Next! ➡️'; }
+  if(nb){ nb.classList.remove('show'); nb.textContent='Next! ➡️'; nb.dataset.action='next'; }
 }
 
 function checkAnswer(idx, correctIdx){
@@ -285,7 +285,7 @@ function checkAnswer(idx, correctIdx){
       fb.textContent=`It was ${correct}! You got ${score} in a row 💪`;
       fb.className='feedback bad show';
       const nb=document.getElementById('nextBtn');
-      nb.textContent='Try Again! 🔄'; nb.onclick=startGame;
+      nb.textContent='Try Again! 🔄'; nb.dataset.action='start';
       nb.classList.add('show'); return;
     }
     fb.textContent=`It was ${correct}! ${badMsg[Math.floor(Math.random()*badMsg.length)]}`;
@@ -323,7 +323,7 @@ function attachTimeListeners(){
   const btnHome = document.getElementById('btnHome'); if(btnHome) btnHome.addEventListener('click', goHome);
   const btnOpenSettings = document.getElementById('btnOpenSettings'); if(btnOpenSettings) btnOpenSettings.addEventListener('click', openSettings);
   const btnEndless = document.getElementById('btnEndless'); if(btnEndless) btnEndless.addEventListener('click', toggleEndless);
-  const nextBtn = document.getElementById('nextBtn'); if(nextBtn) nextBtn.addEventListener('click', nextQuestion);
+  const nextBtn = document.getElementById('nextBtn'); if(nextBtn) nextBtn.addEventListener('click', ()=>{ if(nextBtn.dataset.action==='start') startGame(); else nextQuestion(); });
   const playAgain = document.getElementById('playAgainBtn'); if(playAgain) playAgain.addEventListener('click', startGame);
 
   const settingsOverlay = document.getElementById('settingsOverlay');

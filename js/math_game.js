@@ -193,9 +193,9 @@ function generateOptions(correct){
     if(cand===correct) continue;
     opts.add(cand);
   }
-  // Fallback if still not 3
-  let extra=correct-1;
-  while(opts.size<3){ if(!opts.has(extra)&&(allowNeg||extra>=0)) opts.add(extra); extra--; }
+  // Fallback if still not 3: go upward from correct+1 (always yields positive values)
+  let extra=correct+1;
+  while(opts.size<3){ if(!opts.has(extra)) opts.add(extra); extra++; }
   return shuffle([...opts]);
 }
 
