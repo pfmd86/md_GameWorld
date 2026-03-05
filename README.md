@@ -47,3 +47,5 @@ If you enjoy the project, consider supporting development:
 
 ---
 Made with ❤️ — Mathias Denzin
+
+**Play online:** https://games.mathiasdenzin.com
